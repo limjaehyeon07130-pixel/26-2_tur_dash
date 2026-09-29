@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="ko" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>구글 시트 연동 실시간 경영 성과 대시보드</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                        },
+                        profit: '#10b981',
+                        sales: '#3b82f6',
+                        income: '#8b5cf6',
+                        stock: '#f59e0b',
+                        danger: '#ef4444'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Google Fonts & FontAwesome Icons -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        }
+        .dark .glass-panel {
+            background: rgba(30, 41, 59, 0.85);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 min-h-screen transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+
+    <header class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur dark:bg-slate-900/95 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-emerald-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
+                    <i class="fa-solid fa-table-cells"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold leading-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                        구글 시트 연동 대시보드
+                        <span id="liveStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
+                            동기화 대기 중
+                        </span>
+                    </h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">3차년도 4분기 ~ 4차년도 4분기 (1차~3차 3분기 소거 · 미진행 분기 평가 제외)</p>
+                </div>
+            </div>
+
+            <!-- Header Action Controls -->
+            <div class="flex items-center gap-2 sm:gap-3">
+                <button onclick="fetchSheetData(false)" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md flex items-center gap-2 transition">
+                    <i id="syncIcon" class="fa-solid fa-rotate"></i>
+                    <span>지금 새로고침</span>
+                </button>
+                <button onclick="openSheetModal()" class="px-3 py-2 rounded-lg text-xs font-medium bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300 flex items-center gap-2 transition dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700">
+                    <i class="fa-solid fa-link text-indigo-600 dark:text-indigo-400"></i>
+                    <span>시트 주소/CSV 설정</span>
+                </button>
+                <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transition" title="화면 테마 변경">
+                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Google Sheet Live Connection Info Bar -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-4 rounded-2xl">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
+                    <i class="fa-solid fa-file-spreadsheet text-xl"></i>
+                </div>
+                <div class="overflow-hidden">
+                    <div class="flex items-center gap-2">
+                        <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">연동 대상 구글 스프레드시트</span>
+                        <span id="dataCountBadge" class="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">0개 행 로드됨</span>
+                    </div>
+                    <a id="sheetUrlDisplay" href="https://docs.google.com/spreadsheets/d/1HN4gFJxzYLTsmi_wvMvxsJXHutQN8NgD8gRduyqgD3M/edit?usp=sharing" target="_blank" class="text-xs text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 truncate block font-mono underline">
+                        https://docs.google.com/spreadsheets/d/1HN4gFJxzYLTsmi_wvMvxsJXHutQN8NgD8gRduyqgD3M/edit?usp=sharing
+                    </a>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <span class="text-xs text-slate-500 dark:text-slate-400">※ 이 대시보드는 사용자의 구글 시트 실제 수치만을 동기화하여 시각화합니다.</span>
+            </div>
+        </div>
+
+        <!-- No Data / Loading Notice Alert Banner -->
+        <div id="dataNotice" class="hidden glass-panel p-4 rounded-2xl border-l-4 border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-base"></i>
+                <span id="dataNoticeText">구글 시트 데이터를 로딩하는 중입니다...</span>
+            </div>
+            <button onclick="openSheetModal()" class="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400">직접 입력 / CSV 파싱</button>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Card 1: Sales -->
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">매출액 (Sales)</span>
+                    <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-chart-line"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <div id="kpiSalesVal" class="text-2xl font-extrabold text-slate-900 dark:text-white">-</div>
+                    <span id="kpiSalesTrendBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
+                        -
+                    </span>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2">
+                    <span>최근 방향: <strong id="kpiSalesSlope" class="text-blue-600 dark:text-blue-400">-</strong></span>
+                    <span>실적 기준</span>
+                </div>
+            </div>
+
+            <!-- Card 2: Operating Profit -->
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">영업이익 (Profit)</span>
+                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-chart-simple"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <div id="kpiProfitVal" class="text-2xl font-extrabold text-slate-900 dark:text-white">-</div>
+                    <span id="kpiProfitTrendBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
+                        -
+                    </span>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2">
+                    <span>최근 방향: <strong id="kpiProfitSlope" class="text-emerald-600 dark:text-emerald-400">-</strong></span>
+                    <span>영업이익률: <strong id="kpiOpMargin" class="text-emerald-600 dark:text-emerald-400">-</strong></span>
+                </div>
+            </div>
+
+            <!-- Card 3: Net Income -->
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">당기순이익 (Net Income)</span>
+                    <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-sack-dollar"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <div id="kpiIncomeVal" class="text-2xl font-extrabold text-slate-900 dark:text-white">-</div>
+                    <span id="kpiIncomeTrendBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
+                        -
+                    </span>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2">
+                    <span>최근 방향: <strong id="kpiIncomeSlope" class="text-purple-600 dark:text-purple-400">-</strong></span>
+                    <span>순이익률: <strong id="kpiNetMargin" class="text-purple-600 dark:text-purple-400">-</strong></span>
+                </div>
+            </div>
+
+            <!-- Card 4: Stock Price -->
+            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">주가 (Stock Price)</span>
+                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-arrow-trend-up"></i>
+                    </div>
+                </div>
+                <div class="flex items-baseline justify-between">
+                    <div id="kpiStockVal" class="text-2xl font-extrabold text-slate-900 dark:text-white">-</div>
+                    <span id="kpiStockTrendBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
+                        -
+                    </span>
+                </div>
+                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2">
+                    <span>최근 방향: <strong id="kpiStockSlope" class="text-amber-600 dark:text-amber-400">-</strong></span>
+                    <span>최근 종가</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="glass-panel p-6 rounded-2xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h2 class="text-base font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-chart-area text-indigo-500"></i>
+                        매출액 (꺾은선) & 영업이익 (막대) 종합 현황
+                    </h2>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">
+                        3차년도 4분기 ~ 4차년도 4분기 표출 (1차~3차 3분기 소거 적용 및 작성된 분기 기준 실적 평가)
+                    </p>
+                </div>
+                <div class="flex items-center gap-3 text-xs flex-wrap">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> 매출액</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span> 영업이익</span>
+                </div>
+            </div>
+
+            <!-- Canvas Container -->
+            <div class="relative w-full h-80 sm:h-96">
+                <canvas id="comboChart"></canvas>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            
+            <!-- Chart 1: Sales -->
+            <div class="glass-panel p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
+                        매출액 분석
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">시트 수치 시각화</p>
+                </div>
+                <div class="relative w-full h-60">
+                    <canvas id="salesChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Operating Profit -->
+            <div class="glass-panel p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span>
+                        영업이익 분석
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">시트 수치 시각화</p>
+                </div>
+                <div class="relative w-full h-60">
+                    <canvas id="profitChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Net Income -->
+            <div class="glass-panel p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
+                        당기순이익 분석
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">시트 수치 시각화</p>
+                </div>
+                <div class="relative w-full h-60">
+                    <canvas id="incomeChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Stock Price -->
+            <div class="glass-panel p-5 rounded-2xl space-y-3">
+                <div>
+                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
+                        주가 분석
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">시트 수치 시각화</p>
+                </div>
+                <div class="relative w-full h-60">
+                    <canvas id="stockChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="glass-panel p-6 rounded-2xl space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                    <h3 class="text-base font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-table-list text-indigo-500"></i>
+                        구글 시트 수신 내역
+                    </h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">실제 시트 데이터 및 진행 상태</p>
+                </div>
+                <button onclick="exportCSV()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition">
+                    <i class="fa-solid fa-file-csv text-emerald-600 dark:text-emerald-400"></i> CSV 내보내기
+                </button>
+            </div>
+
+            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-100 text-slate-700 dark:bg-slate-900/90 dark:text-slate-300 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
+                        <tr>
+                            <th class="py-3.5 px-4">기간 (Period)</th>
+                            <th class="py-3.5 px-4 text-right">매출액</th>
+                            <th class="py-3.5 px-4 text-right">영업이익</th>
+                            <th class="py-3.5 px-4 text-right">당기순이익</th>
+                            <th class="py-3.5 px-4 text-right">주가</th>
+                            <th class="py-3.5 px-4 text-center">진행 상태</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dataTableBody" class="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono">
+                        <tr>
+                            <td colspan="6" class="py-6 text-center text-slate-500">구글 시트 데이터를 가져오는 중입니다...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal for Manual URL or CSV -->
+    <div id="sheetModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 space-y-5 border border-slate-300 dark:border-slate-700 shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
+                <h3 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
+                    <i class="fa-solid fa-link text-indigo-500"></i> Google Sheet ID 및 데이터 직접 설정
+                </h3>
+                <button onclick="closeSheetModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-white">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
+                    공개된 구글 스프레드시트 URL 또는 ID
+                </label>
+                <input id="inputSheetUrl" type="text" 
+                    value="https://docs.google.com/spreadsheets/d/1HN4gFJxzYLTsmi_wvMvxsJXHutQN8NgD8gRduyqgD3M/edit?usp=sharing"
+                    class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+            </div>
+
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">또는 CSV 텍스트 직접 붙여넣기</label>
+                <textarea id="rawCsvTextArea" rows="4" placeholder="기간,매출액,영업이익,당기순이익,주가&#10;3차년도 4분기,1250,155,118,48500..." class="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+            </div>
+
+            <div class="border-t border-slate-200 dark:border-slate-800 pt-3">
+                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">CSV 파일 선택 업로드</label>
+                <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileUpload(event)"
+                    class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-200 dark:file:bg-slate-800 file:text-indigo-600 dark:file:text-indigo-400 cursor-pointer">
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeSheetModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 transition">취소</button>
+                <button onclick="applyModalData()" class="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition">데이터 적용하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-indigo-600 text-white text-xs font-medium shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMsg">메시지</span>
+    </div>
+
+    <script>
+        // Default Google Sheet ID
+        let currentSheetId = "1HN4gFJxzYLTsmi_wvMvxsJXHutQN8NgD8gRduyqgD3M";
+        
+        // Active dataset from Google Sheet
+        let activeData = [];
+
+        // Standard target quarters starting specifically from 3차년도 4분기 up to 4차년도 4분기
+        const defaultQuarters = [
+            "3차년도 4분기",
+            "4차년도 1분기", "4차년도 2분기", "4차년도 3분기", "4차년도 4분기"
+        ];
+
+        // Quarters to explicitly exclude/erase if present in raw sheet data
+        const excludedQuarterPrefixes = [
+            "1차년도", "2차년도", "3차년도 1분기", "3차년도 2분기", "3차년도 3분기"
+        ];
+
+        // Chart Instance References
+        let comboChartInstance = null;
+        let salesChartInstance = null;
+        let profitChartInstance = null;
+        let incomeChartInstance = null;
+        let stockChartInstance = null;
+
+        /**
+         * Linear Regression Helper Function for Trendlines
+         */
+        function calculateLinearRegression(data) {
+            if (!data || data.length === 0) return { slope: 0, intercept: 0, trend: [] };
+            const validPoints = [];
+            data.forEach((val, idx) => {
+                if (val !== null && !isNaN(val)) {
+                    validPoints.push({ x: idx, y: val });
+                }
+            });
+
+            if (validPoints.length === 0) {
+                return { slope: 0, intercept: 0, trend: data.map(() => null) };
+            }
+            if (validPoints.length === 1) {
+                return { slope: 0, intercept: validPoints[0].y, trend: data.map(() => validPoints[0].y) };
+            }
+
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            const n = validPoints.length;
+            for (let p of validPoints) {
+                sumX += p.x;
+                sumY += p.y;
+                sumXY += p.x * p.y;
+                sumXX += p.x * p.x;
+            }
+
+            const denominator = (n * sumXX - sumX * sumX);
+            const slope = denominator === 0 ? 0 : (n * sumXY - sumX * sumY) / denominator;
+            const intercept = (sumY - slope * sumX) / n;
+
+            const trend = data.map((_, idx) => slope * idx + intercept);
+            return { slope, intercept, trend };
+        }
+
+        /**
+         * Mapping Raw Records to Default Target Quarters
+         */
+        function mapToDefaultQuarters(rawDataMap) {
+            const finalParsed = [];
+            defaultQuarters.forEach(p => {
+                const matchedKey = Object.keys(rawDataMap).find(k => k.includes(p) || p.includes(k));
+                if (matchedKey && rawDataMap[matchedKey]) {
+                    finalParsed.push({ ...rawDataMap[matchedKey], period: p });
+                } else {
+                    finalParsed.push({
+                        period: p,
+                        sales: null,
+                        profit: null,
+                        income: null,
+                        stock: null,
+                        isCompleted: false
+                    });
+                }
+            });
+
+            // Append any additional valid unlisted target quarters if present
+            Object.keys(rawDataMap).forEach(k => {
+                if (!defaultQuarters.some(p => k.includes(p) || p.includes(k))) {
+                    finalParsed.push(rawDataMap[k]);
+                }
+            });
+
+            return finalParsed;
+        }
+
+        /**
+         * Robust CSV Parser with Auto Header Detection
+         */
+        function parseSheetCSV(csvText) {
+            if (!csvText || typeof csvText !== 'string') return [];
+            
+            const lines = [];
+            let currentRow = [];
+            let currentCell = '';
+            let insideQuotes = false;
+
+            for (let i = 0; i < csvText.length; i++) {
+                const char = csvText[i];
+                const nextChar = csvText[i + 1];
+
+                if (char === '"') {
+                    if (insideQuotes && nextChar === '"') {
+                        currentCell += '"';
+                        i++;
+                    } else {
+                        insideQuotes = !insideQuotes;
+                    }
+                } else if (char === ',' && !insideQuotes) {
+                    currentRow.push(currentCell.trim());
+                    currentCell = '';
+                } else if ((char === '\r' || char === '\n') && !insideQuotes) {
+                    if (char === '\r' && nextChar === '\n') i++;
+                    currentRow.push(currentCell.trim());
+                    if (currentRow.some(c => c.length > 0)) {
+                        lines.push(currentRow);
+                    }
+                    currentRow = [];
+                    currentCell = '';
+                } else {
+                    currentCell += char;
+                }
+            }
+            if (currentCell.length > 0 || currentRow.length > 0) {
+                currentRow.push(currentCell.trim());
+                if (currentRow.some(c => c.length > 0)) {
+                    lines.push(currentRow);
+                }
+            }
+
+            if (lines.length === 0) return [];
+
+            // Find header row dynamically
+            let headerIdx = -1;
+            for (let i = 0; i < Math.min(lines.length, 10); i++) {
+                const rowStr = lines[i].join(' ').toLowerCase();
+                if (rowStr.includes('기간') || rowStr.includes('분기') || rowStr.includes('매출') || rowStr.includes('영업이익') || rowStr.includes('period')) {
+                    headerIdx = i;
+                    break;
+                }
+            }
+
+            if (headerIdx === -1) headerIdx = 0;
+
+            const headers = lines[headerIdx].map(h => h.toLowerCase().replace(/\s+/g, ''));
+            let periodIdx = -1, salesIdx = -1, profitIdx = -1, incomeIdx = -1, stockIdx = -1;
+
+            headers.forEach((h, idx) => {
+                if (h.includes('기간') || h.includes('분기') || h.includes('연도') || h.includes('period') || h.includes('구분')) periodIdx = idx;
+                else if (h.includes('매출액') || h.includes('매출') || h.includes('sales')) salesIdx = idx;
+                else if (h.includes('영업이익') || h.includes('profit') || h.includes('op')) profitIdx = idx;
+                else if (h.includes('당기순이익') || h.includes('순이익') || h.includes('income')) incomeIdx = idx;
+                else if (h.includes('주가') || h.includes('stock')) stockIdx = idx;
+            });
+
+            if (periodIdx === -1) periodIdx = 0;
+            if (salesIdx === -1) salesIdx = 1;
+            if (profitIdx === -1) profitIdx = 2;
+            if (incomeIdx === -1) incomeIdx = 3;
+            if (stockIdx === -1) stockIdx = 4;
+
+            const rawDataMap = {};
+
+            for (let i = headerIdx + 1; i < lines.length; i++) {
+                const row = lines[i];
+                if (!row || row.length === 0) continue;
+
+                const periodVal = row[periodIdx] ? row[periodIdx].trim() : '';
+                if (!periodVal) continue;
+
+                // Exclude 1차, 2차, 3차 1~3분기
+                const isExcluded = excludedQuarterPrefixes.some(ex => periodVal.includes(ex));
+                if (isExcluded) continue;
+
+                const parseNum = (val) => {
+                    if (!val) return NaN;
+                    const cleaned = String(val).replace(/,/g, '').replace(/₩/g, '').replace(/원/g, '').trim();
+                    const num = parseFloat(cleaned);
+                    return isNaN(num) ? NaN : num;
+                };
+
+                const salesVal = parseNum(row[salesIdx]);
+                const profitVal = parseNum(row[profitIdx]);
+                const incomeVal = parseNum(row[incomeIdx]);
+                const stockVal = parseNum(row[stockIdx]);
+
+                const hasSales = !isNaN(salesVal) && salesVal !== 0;
+                const hasProfit = !isNaN(profitVal) && profitVal !== 0;
+                const hasIncome = !isNaN(incomeVal) && incomeVal !== 0;
+                const hasStock = !isNaN(stockVal) && stockVal !== 0;
+
+                const isCompleted = hasSales || hasProfit || hasIncome || hasStock;
+
+                rawDataMap[periodVal] = {
+                    period: periodVal,
+                    sales: isCompleted ? (isNaN(salesVal) ? 0 : salesVal) : null,
+                    profit: isCompleted ? (isNaN(profitVal) ? 0 : profitVal) : null,
+                    income: isCompleted ? (isNaN(incomeVal) ? 0 : incomeVal) : null,
+                    stock: isCompleted ? (isNaN(stockVal) ? 0 : stockVal) : null,
+                    isCompleted
+                };
+            }
+
+            return mapToDefaultQuarters(rawDataMap);
+        }
+
+        /**
+         * Converts GViz table JSON into activeData format
+         */
+        function parseGvizTable(table) {
+            if (!table || !table.rows) return [];
+
+            const cols = table.cols.map(c => (c.label || c.id || '').toLowerCase().replace(/\s+/g, ''));
+            let periodIdx = -1, salesIdx = -1, profitIdx = -1, incomeIdx = -1, stockIdx = -1;
+
+            cols.forEach((c, idx) => {
+                if (c.includes('기간') || c.includes('분기') || c.includes('연도') || c.includes('period') || c.includes('구분')) periodIdx = idx;
+                else if (c.includes('매출액') || c.includes('매출') || c.includes('sales')) salesIdx = idx;
+                else if (c.includes('영업이익') || c.includes('profit') || c.includes('op')) profitIdx = idx;
+                else if (c.includes('당기순이익') || c.includes('순이익') || c.includes('income')) incomeIdx = idx;
+                else if (c.includes('주가') || c.includes('stock')) stockIdx = idx;
+            });
+
+            if (periodIdx === -1) periodIdx = 0;
+            if (salesIdx === -1) salesIdx = 1;
+            if (profitIdx === -1) profitIdx = 2;
+            if (incomeIdx === -1) incomeIdx = 3;
+            if (stockIdx === -1) stockIdx = 4;
+
+            const rawDataMap = {};
+
+            table.rows.forEach((row) => {
+                if (!row.c) return;
+                const getVal = (idx) => {
+                    if (idx < 0 || !row.c[idx]) return null;
+                    const cell = row.c[idx];
+                    if (cell.f) return cell.f;
+                    if (cell.v !== undefined && cell.v !== null) return cell.v;
+                    return null;
+                };
+
+                const rawPeriod = getVal(periodIdx);
+                if (!rawPeriod) return;
+                const period = String(rawPeriod).trim();
+
+                const isExcluded = excludedQuarterPrefixes.some(ex => period.includes(ex));
+                if (isExcluded) return;
+
+                const parseNum = (v) => {
+                    if (v === null || v === undefined) return NaN;
+                    if (typeof v === 'number') return v;
+                    const cleaned = String(v).replace(/,/g, '').replace(/₩/g, '').replace(/원/g, '').trim();
+                    return parseFloat(cleaned);
+                };
+
+                const rawSales = parseNum(getVal(salesIdx));
+                const rawProfit = parseNum(getVal(profitIdx));
+                const rawIncome = parseNum(getVal(incomeIdx));
+                const rawStock = parseNum(getVal(stockIdx));
+
+                const hasSales = !isNaN(rawSales) && rawSales !== 0;
+                const hasProfit = !isNaN(rawProfit) && rawProfit !== 0;
+                const hasIncome = !isNaN(rawIncome) && rawIncome !== 0;
+                const hasStock = !isNaN(rawStock) && rawStock !== 0;
+
+                const isCompleted = hasSales || hasProfit || hasIncome || hasStock;
+
+                rawDataMap[period] = {
+                    period,
+                    sales: isCompleted ? (isNaN(rawSales) ? 0 : rawSales) : null,
+                    profit: isCompleted ? (isNaN(rawProfit) ? 0 : rawProfit) : null,
+                    income: isCompleted ? (isNaN(rawIncome) ? 0 : rawIncome) : null,
+                    stock: isCompleted ? (isNaN(rawStock) ? 0 : rawStock) : null,
+                    isCompleted
+                };
+            });
+
+            return mapToDefaultQuarters(rawDataMap);
+        }
+
+        function updateBadgeStatus(text, badgeClass) {
+            const badge = document.getElementById('liveStatusBadge');
+            if (badge) {
+                badge.innerText = text;
+                if (badgeClass) {
+                    badge.className = `inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeClass}`;
+                }
+            }
+        }
+
+        function showDataNotice(msg) {
+            const notice = document.getElementById('dataNotice');
+            const noticeText = document.getElementById('dataNoticeText');
+            if (noticeText) noticeText.innerText = msg;
+            if (notice) notice.classList.remove('hidden');
+        }
+
+        function hideDataNotice() {
+            const notice = document.getElementById('dataNotice');
+            if (notice) notice.classList.add('hidden');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            const toastMsg = document.getElementById('toastMsg');
+            if (toastMsg) toastMsg.innerText = msg;
+            if (toast) {
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
+            }
+        }
+
+        function openSheetModal() {
+            const modal = document.getElementById('sheetModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeSheetModal() {
+            const modal = document.getElementById('sheetModal');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function toggleDarkMode() {
+            const html = document.documentElement;
+            const themeIcon = document.getElementById('themeIcon');
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                html.classList.add('light');
+                if (themeIcon) themeIcon.className = 'fa-solid fa-moon';
+            } else {
+                html.classList.remove('light');
+                html.classList.add('dark');
+                if (themeIcon) themeIcon.className = 'fa-solid fa-sun';
+            }
+            if (activeData && activeData.length > 0) {
+                renderDashboard();
+            }
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                document.getElementById('rawCsvTextArea').value = content;
+            };
+            reader.readAsText(file);
+        }
+
+        function applyModalData() {
+            const urlInput = document.getElementById('inputSheetUrl').value.trim();
+            const rawCsv = document.getElementById('rawCsvTextArea').value.trim();
+
+            if (rawCsv) {
+                const parsed = parseSheetCSV(rawCsv);
+                if (parsed && parsed.length > 0) {
+                    activeData = parsed;
+                    hideDataNotice();
+                    renderDashboard();
+                    closeSheetModal();
+                    showToast("직접 입력한 CSV 데이터가 적용되었습니다.");
+                    return;
+                }
+            }
+
+            if (urlInput) {
+                const match = urlInput.match(/\/d\/([a-zA-A0-9-_]+)/);
+                if (match && match[1]) {
+                    currentSheetId = match[1];
+                } else {
+                    currentSheetId = urlInput;
+                }
+                const displayElem = document.getElementById('sheetUrlDisplay');
+                if (displayElem) {
+                    displayElem.href = `https://docs.google.com/spreadsheets/d/${currentSheetId}/edit?usp=sharing`;
+                    displayElem.innerText = `https://docs.google.com/spreadsheets/d/${currentSheetId}/edit?usp=sharing`;
+                }
+                closeSheetModal();
+                fetchSheetData(false);
+            }
+        }
+
+        function exportCSV() {
+            if (!activeData || activeData.length === 0) {
+                showToast("내보낼 데이터가 없습니다.");
+                return;
+            }
+            let csvContent = "data:text/csv;charset=utf-8,기간,매출액,영업이익,당기순이익,주가,진행상태\n";
+            activeData.forEach(d => {
+                const status = d.isCompleted ? "진행 완료" : "미진행";
+                csvContent += `"${d.period}",${d.sales ?? ''},${d.profit ?? ''},${d.income ?? ''},${d.stock ?? ''},"${status}"\n`;
+            });
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", "financial_dashboard_data.csv");
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        /**
+         * Multi-endpoint Data Synchronizer
+         */
+        function fetchSheetData(isSilent = false) {
+            const syncIcon = document.getElementById('syncIcon');
+            if (syncIcon) syncIcon.classList.add('fa-spin');
+
+            updateBadgeStatus("데이터 동기화 중...", "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20");
+
+            window.handleGvizResponse = function(response) {
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
+                if (!response || !response.table) {
+                    tryFetchCsvFallback(0, isSilent);
+                    return;
+                }
+
+                try {
+                    const parsed = parseGvizTable(response.table);
+                    if (parsed && parsed.length > 0) {
+                        activeData = parsed;
+                        updateBadgeStatus("동기화 완료 (3차년도 4분기부터 표시)", "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20");
+                        hideDataNotice();
+                        renderDashboard();
+                        if (!isSilent) showToast("3차년도 4분기 기준 구글 시트 데이터가 반영되었습니다.");
+                    } else {
+                        tryFetchCsvFallback(0, isSilent);
+                    }
+                } catch (err) {
+                    console.error("Gviz parse error:", err);
+                    tryFetchCsvFallback(0, isSilent);
+                }
+            };
+
+            const oldScript = document.getElementById('gvizScript');
+            if (oldScript) oldScript.remove();
+
+            const script = document.createElement('script');
+            script.id = 'gvizScript';
+            script.src = `https://docs.google.com/spreadsheets/d/${currentSheetId}/gviz/tq?tqx=responseHandler:handleGvizResponse&t=${Date.now()}`;
+            script.onerror = function() {
+                tryFetchCsvFallback(0, isSilent);
+            };
+            document.head.appendChild(script);
+        }
+
+        function tryFetchCsvFallback(index, isSilent = false) {
+            const syncIcon = document.getElementById('syncIcon');
+            const urls = [
+                `https://docs.google.com/spreadsheets/d/${currentSheetId}/gviz/tq?tqx=out:csv`,
+                `https://docs.google.com/spreadsheets/d/${currentSheetId}/export?format=csv`,
+                `https://docs.google.com/spreadsheets/d/${currentSheetId}/pub?output=csv`
+            ];
+
+            if (index >= urls.length) {
+                updateBadgeStatus("연동 대기 - 수동 CSV 업로드 가능", "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20");
+                showDataNotice(`구글 시트 수신 응답이 차단되었습니다. [시트 주소/CSV 설정]에서 복사한 CSV를 붙여넣으시면 즉시 반영됩니다.`);
+                if (syncIcon) syncIcon.classList.remove('fa-spin');
+                return;
+            }
+
+            fetch(urls[index], { cache: "no-cache" })
+                .then(res => {
+                    if (!res.ok) throw new Error("HTTP error " + res.status);
+                    return res.text();
+                })
+                .then(csvText => {
+                    if (!csvText || csvText.includes("<!DOCTYPE html>") || csvText.includes("HTML")) {
+                        throw new Error("Invalid CSV response");
+                    }
+                    const parsed = parseSheetCSV(csvText);
+                    if (parsed && parsed.length > 0) {
+                        activeData = parsed;
+                        updateBadgeStatus("동기화 완료 (3차년도 4분기부터 표시)", "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20");
+                        hideDataNotice();
+                        renderDashboard();
+                        if (!isSilent) showToast("3차년도 4분기 기준 구글 시트 데이터가 반영되었습니다.");
+                        if (syncIcon) syncIcon.classList.remove('fa-spin');
+                    } else {
+                        throw new Error("No parsed rows");
+                    }
+                })
+                .catch(() => {
+                    tryFetchCsvFallback(index + 1, isSilent);
+                });
+        }
+
+        function renderDashboard() {
+            const completedItems = activeData.filter(d => d.isCompleted);
+            const badgeElem = document.getElementById('dataCountBadge');
+            if (badgeElem) {
+                badgeElem.innerText = `${completedItems.length}개 진행 분기 실적 반영 (${activeData.length - completedItems.length}개 미진행 분기 표출)`;
+            }
+
+            if (activeData.length === 0) return;
+
+            const labels = activeData.map(d => d.period);
+            const salesData = activeData.map(d => d.sales);
+            const profitData = activeData.map(d => d.profit);
+            const incomeData = activeData.map(d => d.income);
+            const stockData = activeData.map(d => d.stock);
+
+            const performedSales = completedItems.map(d => d.sales);
+            const performedProfit = completedItems.map(d => d.profit);
+            const performedIncome = completedItems.map(d => d.income);
+            const performedStock = completedItems.map(d => d.stock);
+
+            const salesReg = calculateLinearRegression(performedSales);
+            const profitReg = calculateLinearRegression(performedProfit);
+            const incomeReg = calculateLinearRegression(performedIncome);
+            const stockReg = calculateLinearRegression(performedStock);
+
+            const salesTrendline = activeData.map((d, i) => i < completedItems.length ? salesReg.trend[i] : null);
+            const profitTrendline = activeData.map((d, i) => i < completedItems.length ? profitReg.trend[i] : null);
+            const incomeTrendline = activeData.map((d, i) => i < completedItems.length ? incomeReg.trend[i] : null);
+            const stockTrendline = activeData.map((d, i) => i < completedItems.length ? stockReg.trend[i] : null);
+
+            updateKpiCards(performedSales, performedProfit, performedIncome, performedStock, salesReg, profitReg, incomeReg, stockReg);
+
+            renderComboChart(labels, salesData, profitData, salesTrendline, profitTrendline);
+
+            renderSingleChart('salesChart', 'salesChartInstance', labels, salesData, salesTrendline, '매출액', '#3b82f6', 'line');
+            renderSingleChart('profitChart', 'profitChartInstance', labels, profitData, profitTrendline, '영업이익', '#10b981', 'bar');
+            renderSingleChart('incomeChart', 'incomeChartInstance', labels, incomeData, incomeTrendline, '당기순이익', '#8b5cf6', 'bar');
+            renderSingleChart('stockChart', 'stockChartInstance', labels, stockData, stockTrendline, '주가', '#f59e0b', 'line');
+
+            renderTable(activeData);
+        }
+
+        function updateKpiCards(sales, profit, income, stock, salesReg, profitReg, incomeReg, stockReg) {
+            const lastIdx = sales.length - 1;
+            const curSales = lastIdx >= 0 ? (sales[lastIdx] || 0) : 0;
+            const curProfit = lastIdx >= 0 ? (profit[lastIdx] || 0) : 0;
+            const curIncome = lastIdx >= 0 ? (income[lastIdx] || 0) : 0;
+            const curStock = lastIdx >= 0 ? (stock[lastIdx] || 0) : 0;
+
+            document.getElementById('kpiSalesVal').innerText = curSales.toLocaleString();
+            document.getElementById('kpiProfitVal').innerText = curProfit.toLocaleString();
+            document.getElementById('kpiIncomeVal').innerText = curIncome.toLocaleString();
+            document.getElementById('kpiStockVal').innerText = curStock.toLocaleString();
+
+            const opMargin = curSales > 0 ? ((curProfit / curSales) * 100).toFixed(1) : "0.0";
+            const netMargin = curSales > 0 ? ((curIncome / curSales) * 100).toFixed(1) : "0.0";
+            document.getElementById('kpiOpMargin').innerText = opMargin + '%';
+            document.getElementById('kpiNetMargin').innerText = netMargin + '%';
+
+            setSlopeBadge('kpiSalesTrendBadge', 'kpiSalesSlope', salesReg.slope);
+            setSlopeBadge('kpiProfitTrendBadge', 'kpiProfitSlope', profitReg.slope);
+            setSlopeBadge('kpiIncomeTrendBadge', 'kpiIncomeSlope', incomeReg.slope);
+            setSlopeBadge('kpiStockTrendBadge', 'kpiStockSlope', stockReg.slope);
+        }
+
+        function setSlopeBadge(badgeId, slopeId, slope) {
+            const isUp = slope >= 0;
+            const statusText = isUp ? "상승세 ↗️" : "감소세 ↘️";
+
+            document.getElementById(slopeId).innerText = statusText;
+
+            const badge = document.getElementById(badgeId);
+            if (isUp) {
+                badge.className = "text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> 상승`;
+            } else {
+                badge.className = "text-xs px-2.5 py-0.5 rounded-full font-semibold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-arrow-trend-down"></i> 하강`;
+            }
+        }
+
+        function renderComboChart(labels, salesData, profitData, salesTrend, profitTrend) {
+            const ctx = document.getElementById('comboChart').getContext('2d');
+            if (comboChartInstance) comboChartInstance.destroy();
+
+            comboChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            type: 'line',
+                            label: '매출액',
+                            data: salesData,
+                            borderColor: '#3b82f6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.3,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'bar',
+                            label: '영업이익',
+                            data: profitData,
+                            backgroundColor: '#10b981',
+                            borderRadius: 6,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'line',
+                            label: ' ',
+                            data: salesTrend,
+                            borderColor: '#93c5fd',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'line',
+                            label: '  ',
+                            data: profitTrend,
+                            borderColor: '#6ee7b7',
+                            borderWidth: 2,
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false,
+                            yAxisID: 'y'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                filter: function(item) {
+                                    return item.text.trim().length > 0;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(156, 163, 175, 0.1)' }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderSingleChart(canvasId, instanceVar, labels, actualData, trendData, label, color, type) {
+            const ctx = document.getElementById(canvasId).getContext('2d');
+            if (window[instanceVar]) window[instanceVar].destroy();
+
+            window[instanceVar] = new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: label,
+                            data: actualData,
+                            borderColor: color,
+                            backgroundColor: type === 'bar' ? color : 'transparent',
+                            borderRadius: type === 'bar' ? 6 : 0,
+                            borderWidth: 2.5,
+                            tension: 0.3
+                        },
+                        {
+                            type: 'line',
+                            label: ' ',
+                            data: trendData,
+                            borderColor: color,
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
+                            pointRadius: 0,
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: {
+                                filter: function(item) {
+                                    return item.text.trim().length > 0;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: { grid: { display: false } },
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        function renderTable(data) {
+            const tbody = document.getElementById('dataTableBody');
+            if (!tbody) return;
+
+            if (data.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">데이터가 없습니다.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = data.map((d) => {
+                const statusBadge = d.isCompleted 
+                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">진행 완료</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400">미진행 분기</span>`;
+
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">${d.period}</td>
+                        <td class="py-3 px-4 text-right ${d.sales === null ? 'text-slate-400' : ''}">${d.sales !== null ? d.sales.toLocaleString() : '-'}</td>
+                        <td class="py-3 px-4 text-right ${d.profit === null ? 'text-slate-400' : ''}">${d.profit !== null ? d.profit.toLocaleString() : '-'}</td>
+                        <td class="py-3 px-4 text-right ${d.income === null ? 'text-slate-400' : ''}">${d.income !== null ? d.income.toLocaleString() : '-'}</td>
+                        <td class="py-3 px-4 text-right ${d.stock === null ? 'text-slate-400' : ''}">${d.stock !== null ? d.stock.toLocaleString() : '-'}</td>
+                        <td class="py-3 px-4 text-center">${statusBadge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        window.onload = function() {
+            fetchSheetData(false);
+        };
+    </script>
+</body>
+</html>
