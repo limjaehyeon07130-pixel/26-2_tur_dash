@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>구글 시트 연동 실시간 경영 성과 대시보드</title>
+    <title>Gartner Style Executive Financial Dashboard</title>
     
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -13,19 +13,27 @@
             theme: {
                 extend: {
                     colors: {
-                        brand: {
-                            500: '#6366f1',
-                            600: '#4f46e5',
-                            700: '#4338ca',
+                        executive: {
+                            50: '#f0f4f8',
+                            100: '#d9e2ec',
+                            200: '#bcccdc',
+                            300: '#9fb3c8',
+                            800: '#102a43',
+                            900: '#0b69a3',
+                            950: '#061b2e'
                         },
-                        profit: '#10b981',
-                        sales: '#3b82f6',
-                        income: '#8b5cf6',
-                        stock: '#f59e0b',
-                        danger: '#ef4444'
+                        moodys: {
+                            navy: '#0A192F',
+                            blue: '#1E3A8A',
+                            accent: '#2563EB',
+                            emerald: '#059669',
+                            slate: '#334155',
+                            lightBg: '#F8FAFC'
+                        }
                     },
                     fontFamily: {
-                        sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+                        sans: ['Inter', 'Noto Sans KR', '-apple-system', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Consolas', 'monospace']
                     }
                 }
             }
@@ -35,256 +43,274 @@
     <!-- Google Fonts & FontAwesome Icons -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <style>
-        body { font-family: 'Noto Sans KR', 'Inter', sans-serif; }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+        body { 
+            font-family: 'Noto Sans KR', 'Inter', sans-serif; 
+            background-color: #f8fafc;
+            color: #0f172a;
         }
-        .dark .glass-panel {
-            background: rgba(30, 41, 59, 0.85);
-            backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: none;
+        .executive-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+            transition: all 0.2s ease-in-out;
+        }
+        .executive-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+        }
+        .report-header-border {
+            border-bottom: 3px solid #1e3a8a;
+        }
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+            .executive-card { border: 1px solid #cbd5e1 !important; box-shadow: none !important; }
         }
     </style>
 </head>
-<body class="bg-slate-100 text-slate-900 min-h-screen transition-colors duration-300 dark:bg-slate-950 dark:text-slate-100">
+<body class="min-h-screen text-slate-900 bg-slate-50 antialiased selection:bg-blue-100 selection:text-blue-900">
 
-    <header class="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/90 backdrop-blur dark:bg-slate-900/95 dark:border-slate-800">
+    <!-- Top Executive Banner -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-emerald-500 flex items-center justify-center text-white font-bold text-xl shadow-lg">
-                    <i class="fa-solid fa-table-cells"></i>
+                <div class="w-9 h-9 rounded bg-blue-600 flex items-center justify-center text-white font-black text-lg tracking-wider shadow-inner">
+                    G
                 </div>
                 <div>
-                    <h1 class="text-lg font-bold leading-tight flex items-center gap-2 text-slate-900 dark:text-slate-100">
-                        구글 시트 연동 대시보드
-                        <span id="liveStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-600 border border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20">
-                            동기화 대기 중
+                    <div class="flex items-center gap-2">
+                        <h1 class="text-base font-bold tracking-tight text-white flex items-center gap-2">
+                            경영 성과 및 재무 분석 리포트
+                        </h1>
+                        <span id="liveStatusBadge" class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                            동기화 완료
                         </span>
-                    </h1>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">3차년도 4분기 ~ 4차년도 4분기 (1차~3차 3분기 소거 · 미진행 분기 평가 제외)</p>
+                    </div>
+                    <p class="text-[11px] text-slate-400">Gartner & Moody's Executive Reporting Standard · 3차년도 4분기 ~ 4차년도 4분기</p>
                 </div>
             </div>
 
-            <!-- Header Action Controls -->
+            <!-- Action Toolbar -->
             <div class="flex items-center gap-2 sm:gap-3">
-                <button onclick="fetchSheetData(false)" class="px-3.5 py-2 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md flex items-center gap-2 transition">
+                <button onclick="fetchSheetData(false)" class="px-3 py-1.5 rounded text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition flex items-center gap-1.5 shadow-sm">
                     <i id="syncIcon" class="fa-solid fa-rotate"></i>
                     <span>지금 새로고침</span>
                 </button>
-                <button onclick="openSheetModal()" class="px-3 py-2 rounded-lg text-xs font-medium bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300 flex items-center gap-2 transition dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700">
-                    <i class="fa-solid fa-link text-indigo-600 dark:text-indigo-400"></i>
-                    <span>시트 주소/CSV 설정</span>
+                <button onclick="window.print()" class="px-3 py-1.5 rounded text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-print text-slate-400"></i>
+                    <span>보고서 인쇄/PDF</span>
                 </button>
-                <button onclick="toggleDarkMode()" class="p-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 transition" title="화면 테마 변경">
-                    <i id="themeIcon" class="fa-solid fa-moon"></i>
+                <button onclick="openSheetModal()" class="px-2.5 py-1.5 rounded text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="시트 설정">
+                    <i class="fa-solid fa-gear"></i>
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
 
-        <!-- Google Sheet Live Connection Info Bar -->
-        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-4 rounded-2xl">
-            <div class="flex items-center gap-3">
-                <div class="p-2.5 rounded-xl bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400">
-                    <i class="fa-solid fa-file-spreadsheet text-xl"></i>
-                </div>
-                <div class="overflow-hidden">
-                    <div class="flex items-center gap-2">
-                        <span class="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">연동 대상 구글 스프레드시트</span>
-                        <span id="dataCountBadge" class="text-[10px] px-2 py-0.5 rounded bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">0개 행 로드됨</span>
-                    </div>
-                    <a id="sheetUrlDisplay" href="https://docs.google.com/spreadsheets/d/1HN4gFJxzYLTsmi_wvMvxsJXHutQN8NgD8gRduyqgD3M/edit?usp=sharing" target="_blank" class="text-xs text-slate-700 hover:text-indigo-600 dark:text-slate-300 dark:hover:text-indigo-400 truncate block font-mono underline">
-                        https://docs.google.com/spreadsheets/d/1HN4gFJxzYLTsmi_wvMvxsJXHutQN8NgD8gRduyqgD3M/edit?usp=sharing
-                    </a>
-                </div>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <span class="text-xs text-slate-500 dark:text-slate-400">※ 이 대시보드는 사용자의 구글 시트 실제 수치만을 동기화하여 시각화합니다.</span>
-            </div>
-        </div>
-
-        <!-- No Data / Loading Notice Alert Banner -->
-        <div id="dataNotice" class="hidden glass-panel p-4 rounded-2xl border-l-4 border-amber-500 bg-amber-500/10 text-amber-800 dark:text-amber-200 text-xs flex items-center justify-between">
-            <div class="flex items-center gap-2">
-                <i class="fa-solid fa-triangle-exclamation text-amber-500 text-base"></i>
-                <span id="dataNoticeText">구글 시트 데이터를 로딩하는 중입니다...</span>
-            </div>
-            <button onclick="openSheetModal()" class="px-3 py-1 rounded-lg bg-amber-500 text-slate-950 font-bold hover:bg-amber-400">직접 입력 / CSV 파싱</button>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            
-            <!-- Card 1: Sales -->
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">매출액 (Sales)</span>
-                    <div class="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-chart-line"></i>
-                    </div>
-                </div>
-                <div class="flex items-baseline justify-between">
-                    <div id="kpiSalesVal" class="text-2xl font-extrabold text-slate-900 dark:text-white">-</div>
-                    <span id="kpiSalesTrendBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
-                        -
-                    </span>
-                </div>
-                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2">
-                    <span>최근 방향: <strong id="kpiSalesSlope" class="text-blue-600 dark:text-blue-400">-</strong></span>
-                    <span>실적 기준</span>
-                </div>
-            </div>
-
-            <!-- Card 2: Operating Profit -->
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">영업이익 (Profit)</span>
-                    <div class="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-chart-simple"></i>
-                    </div>
-                </div>
-                <div class="flex items-baseline justify-between">
-                    <div id="kpiProfitVal" class="text-2xl font-extrabold text-slate-900 dark:text-white">-</div>
-                    <span id="kpiProfitTrendBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
-                        -
-                    </span>
-                </div>
-                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2">
-                    <span>최근 방향: <strong id="kpiProfitSlope" class="text-emerald-600 dark:text-emerald-400">-</strong></span>
-                    <span>영업이익률: <strong id="kpiOpMargin" class="text-emerald-600 dark:text-emerald-400">-</strong></span>
-                </div>
-            </div>
-
-            <!-- Card 3: Net Income -->
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">당기순이익 (Net Income)</span>
-                    <div class="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-sack-dollar"></i>
-                    </div>
-                </div>
-                <div class="flex items-baseline justify-between">
-                    <div id="kpiIncomeVal" class="text-2xl font-extrabold text-slate-900 dark:text-white">-</div>
-                    <span id="kpiIncomeTrendBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
-                        -
-                    </span>
-                </div>
-                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2">
-                    <span>최근 방향: <strong id="kpiIncomeSlope" class="text-purple-600 dark:text-purple-400">-</strong></span>
-                    <span>순이익률: <strong id="kpiNetMargin" class="text-purple-600 dark:text-purple-400">-</strong></span>
-                </div>
-            </div>
-
-            <!-- Card 4: Stock Price -->
-            <div class="glass-panel p-5 rounded-2xl relative overflow-hidden">
-                <div class="flex items-center justify-between mb-2">
-                    <span class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">주가 (Stock Price)</span>
-                    <div class="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold">
-                        <i class="fa-solid fa-arrow-trend-up"></i>
-                    </div>
-                </div>
-                <div class="flex items-baseline justify-between">
-                    <div id="kpiStockVal" class="text-2xl font-extrabold text-slate-900 dark:text-white">-</div>
-                    <span id="kpiStockTrendBadge" class="text-xs px-2.5 py-0.5 rounded-full font-semibold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 flex items-center gap-1">
-                        -
-                    </span>
-                </div>
-                <div class="mt-3 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800 pt-2">
-                    <span>최근 방향: <strong id="kpiStockSlope" class="text-amber-600 dark:text-amber-400">-</strong></span>
-                    <span>최근 종가</span>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="glass-panel p-6 rounded-2xl space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Executive Summary Header (Moody's Style) -->
+        <div class="executive-card p-6 rounded-lg report-header-border relative overflow-hidden bg-white">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
                 <div>
-                    <h2 class="text-base font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-chart-area text-indigo-500"></i>
-                        매출액 (꺾은선) & 영업이익 (막대) 종합 현황
+                    <div class="flex items-center gap-2 text-xs font-bold text-blue-900 uppercase tracking-widest mb-1">
+                        <span>EXECUTIVE FINANCIAL INTELLIGENCE</span>
+                        <span>•</span>
+                        <span id="dataCountBadge" class="text-slate-500 font-normal">5개 분기 대상 평가</span>
+                    </div>
+                    <h2 class="text-2xl font-black text-slate-900 tracking-tight">
+                        경영 실적 지표 종합 종합 평가
                     </h2>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">
-                        3차년도 4분기 ~ 4차년도 4분기 표출 (1차~3차 3분기 소거 적용 및 작성된 분기 기준 실적 평가)
+                    <p class="text-xs text-slate-600 mt-1 max-w-3xl leading-relaxed">
+                        본 대시보드는 연동된 구글 스프레드시트의 <strong>3차년도 4분기부터 4차년도 4분기</strong> 데이터를 기반으로 집계된 경영 성과입니다. 
+                        매출액(소계) 및 영업이익, 당기순이익, 주가의 추세선 분석 및 재무 건전성을 계량화하여 표시합니다.
                     </p>
                 </div>
-                <div class="flex items-center gap-3 text-xs flex-wrap">
-                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> 매출액</span>
-                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-500 inline-block"></span> 영업이익</span>
+                
+                <div class="flex items-center gap-3 self-start lg:self-center bg-slate-50 p-3 rounded border border-slate-200">
+                    <div class="text-right">
+                        <div class="text-[10px] text-slate-500 font-semibold uppercase">Data Source Connected</div>
+                        <a id="sheetUrlDisplay" href="https://docs.google.com/spreadsheets/d/16e8delZFMi8YHOve9Nr8eJ-HW9Dtvas01V-k9Hu_nM4/edit?gid=1792247892#gid=1792247892" target="_blank" class="text-xs font-mono font-medium text-blue-700 hover:underline truncate max-w-[200px] block">
+                            Spreadsheet #1792247892
+                        </a>
+                    </div>
+                    <div class="w-8 h-8 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-table"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Connection Notice Banner -->
+        <div id="dataNotice" class="hidden executive-card p-4 rounded-lg border-l-4 border-amber-500 bg-amber-50 text-amber-900 text-xs flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-triangle-exclamation text-amber-600 text-sm"></i>
+                <span id="dataNoticeText">구글 시트 수신 응답을 확인하고 있습니다...</span>
+            </div>
+            <button onclick="openSheetModal()" class="px-2.5 py-1 rounded bg-amber-600 text-white font-bold hover:bg-amber-500">수동 설정 / CSV</button>
+        </div>
+
+        <!-- 4 Major Executive KPI Indicators -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- KPI 1: Sales -->
+            <div class="executive-card p-5 rounded-lg border-t-2 border-t-blue-600">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">매출액 (Sales Revenue)</span>
+                    <span class="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">Line</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-2">
+                    <div id="kpiSalesVal" class="text-2xl font-extrabold font-mono text-slate-900">-</div>
+                    <span id="kpiSalesTrendBadge" class="text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 bg-slate-100 text-slate-600">
+                        -
+                    </span>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>최근 방향성: <strong id="kpiSalesSlope" class="text-blue-700 font-semibold">-</strong></span>
+                    <span class="font-mono text-[11px]">최근 실적</span>
                 </div>
             </div>
 
-            <!-- Canvas Container -->
-            <div class="relative w-full h-80 sm:h-96">
+            <!-- KPI 2: Operating Profit -->
+            <div class="executive-card p-5 rounded-lg border-t-2 border-t-emerald-600">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">영업이익 (Operating Profit)</span>
+                    <span class="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">Bar</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-2">
+                    <div id="kpiProfitVal" class="text-2xl font-extrabold font-mono text-slate-900">-</div>
+                    <span id="kpiProfitTrendBadge" class="text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 bg-slate-100 text-slate-600">
+                        -
+                    </span>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>영업이익률: <strong id="kpiOpMargin" class="text-emerald-700 font-semibold">-</strong></span>
+                    <span>방향: <strong id="kpiProfitSlope" class="text-slate-700 font-semibold">-</strong></span>
+                </div>
+            </div>
+
+            <!-- KPI 3: Net Income -->
+            <div class="executive-card p-5 rounded-lg border-t-2 border-t-indigo-600">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">당기순이익 (Net Income)</span>
+                    <span class="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">Bar</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-2">
+                    <div id="kpiIncomeVal" class="text-2xl font-extrabold font-mono text-slate-900">-</div>
+                    <span id="kpiIncomeTrendBadge" class="text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 bg-slate-100 text-slate-600">
+                        -
+                    </span>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>순이익률: <strong id="kpiNetMargin" class="text-indigo-700 font-semibold">-</strong></span>
+                    <span>방향: <strong id="kpiIncomeSlope" class="text-slate-700 font-semibold">-</strong></span>
+                </div>
+            </div>
+
+            <!-- KPI 4: Stock Price -->
+            <div class="executive-card p-5 rounded-lg border-t-2 border-t-amber-500">
+                <div class="flex items-center justify-between mb-1">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">주가 (Stock Price)</span>
+                    <span class="text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600">Line</span>
+                </div>
+                <div class="flex items-baseline justify-between mt-2">
+                    <div id="kpiStockVal" class="text-2xl font-extrabold font-mono text-slate-900">-</div>
+                    <span id="kpiStockTrendBadge" class="text-xs font-bold px-2 py-0.5 rounded flex items-center gap-1 bg-slate-100 text-slate-600">
+                        -
+                    </span>
+                </div>
+                <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>최근 종가 기준</span>
+                    <span>방향: <strong id="kpiStockSlope" class="text-slate-700 font-semibold">-</strong></span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Main Combination Chart: Sales (Line) & Operating Profit (Bar) -->
+        <div class="executive-card p-6 rounded-lg space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-200 gap-3">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-chart-column text-blue-800"></i>
+                        매출액 (꺾은선) 및 영업이익 (막대) 종합 성과 분석
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-0.5">
+                        분기별 매출 추이와 영업이익의 기여도를 대조 분석합니다. (점선: 시각적 추세 오버레이)
+                    </p>
+                </div>
+                <div class="flex items-center gap-4 text-xs font-medium">
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-blue-600"></span> 매출액 (Line)</span>
+                    <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-sm bg-emerald-600"></span> 영업이익 (Bar)</span>
+                </div>
+            </div>
+
+            <!-- Main Canvas Container -->
+            <div class="relative w-full h-80 sm:h-96 pt-2">
                 <canvas id="comboChart"></canvas>
             </div>
         </div>
 
+        <!-- 4 Detailed Individual Metrics Visualizations -->
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
-            <!-- Chart 1: Sales -->
-            <div class="glass-panel p-5 rounded-2xl space-y-3">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>
-                        매출액 분석
-                    </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">시트 수치 시각화</p>
+            <!-- Individual Chart 1: Sales Trend -->
+            <div class="executive-card p-5 rounded-lg space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                        매출액 (Sales) 추이 및 성장 시각화
+                    </h4>
+                    <span class="text-[11px] font-mono text-slate-400">단위: 원/백만원</span>
                 </div>
                 <div class="relative w-full h-60">
                     <canvas id="salesChart"></canvas>
                 </div>
             </div>
 
-            <!-- Chart 2: Operating Profit -->
-            <div class="glass-panel p-5 rounded-2xl space-y-3">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-sm bg-emerald-500"></span>
-                        영업이익 분석
-                    </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">시트 수치 시각화</p>
+            <!-- Individual Chart 2: Operating Profit Trend -->
+            <div class="executive-card p-5 rounded-lg space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-emerald-600"></span>
+                        영업이익 (Operating Profit) 창출 현황
+                    </h4>
+                    <span class="text-[11px] font-mono text-slate-400">단위: 원/백만원</span>
                 </div>
                 <div class="relative w-full h-60">
                     <canvas id="profitChart"></canvas>
                 </div>
             </div>
 
-            <!-- Chart 3: Net Income -->
-            <div class="glass-panel p-5 rounded-2xl space-y-3">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                        <span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span>
-                        당기순이익 분석
-                    </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">시트 수치 시각화</p>
+            <!-- Individual Chart 3: Net Income Trend -->
+            <div class="executive-card p-5 rounded-lg space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-sm bg-indigo-600"></span>
+                        당기순이익 (Net Income) 성과 시각화
+                    </h4>
+                    <span class="text-[11px] font-mono text-slate-400">단위: 원/백만원</span>
                 </div>
                 <div class="relative w-full h-60">
                     <canvas id="incomeChart"></canvas>
                 </div>
             </div>
 
-            <!-- Chart 4: Stock Price -->
-            <div class="glass-panel p-5 rounded-2xl space-y-3">
-                <div>
-                    <h3 class="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+            <!-- Individual Chart 4: Stock Price Trend -->
+            <div class="executive-card p-5 rounded-lg space-y-3">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <h4 class="text-sm font-bold text-slate-800 flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span>
-                        주가 분석
-                    </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">시트 수치 시각화</p>
+                        주가 (Stock Price) 변동 추이
+                    </h4>
+                    <span class="text-[11px] font-mono text-slate-400">단위: 원</span>
                 </div>
                 <div class="relative w-full h-60">
                     <canvas id="stockChart"></canvas>
@@ -293,35 +319,36 @@
 
         </div>
 
-        <div class="glass-panel p-6 rounded-2xl space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <!-- Data Audit Table -->
+        <div class="executive-card p-6 rounded-lg space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-200 pb-3">
                 <div>
-                    <h3 class="text-base font-bold flex items-center gap-2">
-                        <i class="fa-solid fa-table-list text-indigo-500"></i>
-                        구글 시트 수신 내역
+                    <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-blue-800"></i>
+                        분기별 실적 원본 집계 데이터 (3차년도 4분기 ~ 4차년도 4분기)
                     </h3>
-                    <p class="text-xs text-slate-500 dark:text-slate-400">실제 시트 데이터 및 진행 상태</p>
+                    <p class="text-xs text-slate-500">구글 시트 연동 수신 데이터 및 실적 집계 상태</p>
                 </div>
-                <button onclick="exportCSV()" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 dark:border-slate-700 flex items-center gap-1.5 transition">
-                    <i class="fa-solid fa-file-csv text-emerald-600 dark:text-emerald-400"></i> CSV 내보내기
+                <button onclick="exportCSV()" class="px-3 py-1.5 rounded text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 flex items-center gap-1.5 transition no-print">
+                    <i class="fa-solid fa-download text-slate-500"></i> CSV 내보내기
                 </button>
             </div>
 
-            <div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-                <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-100 text-slate-700 dark:bg-slate-900/90 dark:text-slate-300 uppercase tracking-wider font-semibold border-b border-slate-200 dark:border-slate-800">
-                        <tr>
-                            <th class="py-3.5 px-4">기간 (Period)</th>
-                            <th class="py-3.5 px-4 text-right">매출액</th>
-                            <th class="py-3.5 px-4 text-right">영업이익</th>
-                            <th class="py-3.5 px-4 text-right">당기순이익</th>
-                            <th class="py-3.5 px-4 text-right">주가</th>
-                            <th class="py-3.5 px-4 text-center">진행 상태</th>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-xs border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 text-slate-700 font-bold border-y border-slate-200 uppercase tracking-wider">
+                            <th class="py-3 px-4">기간 (Period)</th>
+                            <th class="py-3 px-4 text-right">매출액</th>
+                            <th class="py-3 px-4 text-right">영업이익</th>
+                            <th class="py-3 px-4 text-right">당기순이익</th>
+                            <th class="py-3 px-4 text-right">주가</th>
+                            <th class="py-3 px-4 text-center">평가 반영 여부</th>
                         </tr>
                     </thead>
-                    <tbody id="dataTableBody" class="divide-y divide-slate-200 dark:divide-slate-800/60 font-mono">
+                    <tbody id="dataTableBody" class="divide-y divide-slate-200 font-mono">
                         <tr>
-                            <td colspan="6" class="py-6 text-center text-slate-500">구글 시트 데이터를 가져오는 중입니다...</td>
+                            <td colspan="6" class="py-6 text-center text-slate-400">데이터를 로드하는 중입니다...</td>
                         </tr>
                     </tbody>
                 </table>
@@ -330,70 +357,70 @@
 
     </main>
 
-    <!-- Modal for Manual URL or CSV -->
-    <div id="sheetModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="glass-panel w-full max-w-lg rounded-2xl p-6 space-y-5 border border-slate-300 dark:border-slate-700 shadow-2xl">
-            <div class="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">
-                <h3 class="text-base font-bold flex items-center gap-2 text-slate-900 dark:text-white">
-                    <i class="fa-solid fa-link text-indigo-500"></i> Google Sheet ID 및 데이터 직접 설정
+    <!-- Modal for Custom Sheet Link or Manual Text Paste -->
+    <div id="sheetModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden no-print">
+        <div class="bg-white w-full max-w-lg rounded-lg p-6 space-y-4 shadow-2xl border border-slate-300">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 class="text-base font-bold flex items-center gap-2 text-slate-900">
+                    <i class="fa-solid fa-link text-blue-700"></i> 구글 스프레드시트 설정
                 </h3>
-                <button onclick="closeSheetModal()" class="text-slate-400 hover:text-slate-700 dark:hover:text-white">
+                <button onclick="closeSheetModal()" class="text-slate-400 hover:text-slate-600">
                     <i class="fa-solid fa-xmark text-lg"></i>
                 </button>
             </div>
 
-            <div class="space-y-3">
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">
-                    공개된 구글 스프레드시트 URL 또는 ID
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-700">
+                    구글 시트 URL (gid 포함 필수)
                 </label>
                 <input id="inputSheetUrl" type="text" 
-                    value="https://docs.google.com/spreadsheets/d/1HN4gFJxzYLTsmi_wvMvxsJXHutQN8NgD8gRduyqgD3M/edit?usp=sharing"
-                    class="w-full px-3 py-2.5 rounded-xl bg-white border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100">
+                    value="https://docs.google.com/spreadsheets/d/16e8delZFMi8YHOve9Nr8eJ-HW9Dtvas01V-k9Hu_nM4/edit?gid=1792247892#gid=1792247892"
+                    class="w-full px-3 py-2 rounded bg-slate-50 border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600">
             </div>
 
             <div class="space-y-2">
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300">또는 CSV 텍스트 직접 붙여넣기</label>
-                <textarea id="rawCsvTextArea" rows="4" placeholder="기간,매출액,영업이익,당기순이익,주가&#10;3차년도 4분기,1250,155,118,48500..." class="w-full p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-mono text-slate-900 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                <label class="block text-xs font-semibold text-slate-700">또는 CSV 텍스트 붙여넣기</label>
+                <textarea id="rawCsvTextArea" rows="3" placeholder="기간,매출액,영업이익,당기순이익,주가&#10;3차년도 4분기,1250,155,118,48500..." class="w-full p-2.5 rounded bg-slate-50 border border-slate-300 text-xs font-mono text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-600"></textarea>
             </div>
 
-            <div class="border-t border-slate-200 dark:border-slate-800 pt-3">
-                <label class="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-2">CSV 파일 선택 업로드</label>
+            <div class="border-t border-slate-200 pt-3">
+                <label class="block text-xs font-semibold text-slate-700 mb-2">CSV 파일 로드</label>
                 <input type="file" id="csvFileInput" accept=".csv" onchange="handleFileUpload(event)"
-                    class="block w-full text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-200 dark:file:bg-slate-800 file:text-indigo-600 dark:file:text-indigo-400 cursor-pointer">
+                    class="block w-full text-xs text-slate-500 file:mr-4 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-slate-200 file:text-slate-800 hover:file:bg-slate-300 cursor-pointer">
             </div>
 
-            <div class="flex justify-end gap-2 pt-2">
-                <button onclick="closeSheetModal()" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800 transition">취소</button>
-                <button onclick="applyModalData()" class="px-4 py-2 rounded-xl text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg transition">데이터 적용하기</button>
+            <div class="flex justify-end gap-2 pt-2 border-t border-slate-200">
+                <button onclick="closeSheetModal()" class="px-3 py-1.5 rounded text-xs font-medium text-slate-600 hover:bg-slate-100">취소</button>
+                <button onclick="applyModalData()" class="px-4 py-1.5 rounded text-xs font-semibold bg-blue-700 hover:bg-blue-600 text-white shadow">적용하기</button>
             </div>
         </div>
     </div>
 
     <!-- Toast Notification -->
-    <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-3 rounded-xl bg-indigo-600 text-white text-xs font-medium shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 flex items-center gap-2">
-        <i class="fa-solid fa-circle-check"></i>
+    <div id="toast" class="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded bg-slate-900 text-white text-xs font-medium shadow-2xl transition-all duration-300 transform translate-y-20 opacity-0 flex items-center gap-2 border border-slate-700 no-print">
+        <i class="fa-solid fa-circle-info text-blue-400"></i>
         <span id="toastMsg">메시지</span>
     </div>
 
     <script>
-        // Default Google Sheet ID
-        let currentSheetId = "1HN4gFJxzYLTsmi_wvMvxsJXHutQN8NgD8gRduyqgD3M";
+        // Google Sheet Target Configuration (Targeting gid=1792247892)
+        let currentSheetId = "16e8delZFMi8YHOve9Nr8eJ-HW9Dtvas01V-k9Hu_nM4";
+        let currentGid = "1792247892";
         
-        // Active dataset from Google Sheet
         let activeData = [];
 
-        // Standard target quarters starting specifically from 3차년도 4분기 up to 4차년도 4분기
+        // Exact display scope: 3차년도 4분기 up to 4차년도 4분기
         const defaultQuarters = [
             "3차년도 4분기",
             "4차년도 1분기", "4차년도 2분기", "4차년도 3분기", "4차년도 4분기"
         ];
 
-        // Quarters to explicitly exclude/erase if present in raw sheet data
+        // Quarters before 3차년도 4분기 to explicitly exclude
         const excludedQuarterPrefixes = [
             "1차년도", "2차년도", "3차년도 1분기", "3차년도 2분기", "3차년도 3분기"
         ];
 
-        // Chart Instance References
+        // Chart References
         let comboChartInstance = null;
         let salesChartInstance = null;
         let profitChartInstance = null;
@@ -401,7 +428,7 @@
         let stockChartInstance = null;
 
         /**
-         * Linear Regression Helper Function for Trendlines
+         * Linear Regression Calculator for Trend Overlays
          */
         function calculateLinearRegression(data) {
             if (!data || data.length === 0) return { slope: 0, intercept: 0, trend: [] };
@@ -437,7 +464,7 @@
         }
 
         /**
-         * Mapping Raw Records to Default Target Quarters
+         * Mapping raw extracted records into standard quarter range
          */
         function mapToDefaultQuarters(rawDataMap) {
             const finalParsed = [];
@@ -456,19 +483,11 @@
                     });
                 }
             });
-
-            // Append any additional valid unlisted target quarters if present
-            Object.keys(rawDataMap).forEach(k => {
-                if (!defaultQuarters.some(p => k.includes(p) || p.includes(k))) {
-                    finalParsed.push(rawDataMap[k]);
-                }
-            });
-
             return finalParsed;
         }
 
         /**
-         * Robust CSV Parser with Auto Header Detection
+         * Robust CSV Parser with Column Normalization
          */
         function parseSheetCSV(csvText) {
             if (!csvText || typeof csvText !== 'string') return [];
@@ -513,7 +532,6 @@
 
             if (lines.length === 0) return [];
 
-            // Find header row dynamically
             let headerIdx = -1;
             for (let i = 0; i < Math.min(lines.length, 10); i++) {
                 const rowStr = lines[i].join(' ').toLowerCase();
@@ -551,7 +569,6 @@
                 const periodVal = row[periodIdx] ? row[periodIdx].trim() : '';
                 if (!periodVal) continue;
 
-                // Exclude 1차, 2차, 3차 1~3분기
                 const isExcluded = excludedQuarterPrefixes.some(ex => periodVal.includes(ex));
                 if (isExcluded) continue;
 
@@ -588,7 +605,7 @@
         }
 
         /**
-         * Converts GViz table JSON into activeData format
+         * Parsing GViz Google Table Data
          */
         function parseGvizTable(table) {
             if (!table || !table.rows) return [];
@@ -666,7 +683,7 @@
             if (badge) {
                 badge.innerText = text;
                 if (badgeClass) {
-                    badge.className = `inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold ${badgeClass}`;
+                    badge.className = `inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium ${badgeClass}`;
                 }
             }
         }
@@ -707,23 +724,6 @@
             if (modal) modal.classList.add('hidden');
         }
 
-        function toggleDarkMode() {
-            const html = document.documentElement;
-            const themeIcon = document.getElementById('themeIcon');
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                html.classList.add('light');
-                if (themeIcon) themeIcon.className = 'fa-solid fa-moon';
-            } else {
-                html.classList.remove('light');
-                html.classList.add('dark');
-                if (themeIcon) themeIcon.className = 'fa-solid fa-sun';
-            }
-            if (activeData && activeData.length > 0) {
-                renderDashboard();
-            }
-        }
-
         function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -746,22 +746,27 @@
                     hideDataNotice();
                     renderDashboard();
                     closeSheetModal();
-                    showToast("직접 입력한 CSV 데이터가 적용되었습니다.");
+                    showToast("직접 입력한 CSV 데이터가 반영되었습니다.");
                     return;
                 }
             }
 
             if (urlInput) {
-                const match = urlInput.match(/\/d\/([a-zA-A0-9-_]+)/);
-                if (match && match[1]) {
-                    currentSheetId = match[1];
-                } else {
-                    currentSheetId = urlInput;
+                const idMatch = urlInput.match(/\/d\/([a-zA-Z0-9-_]+)/);
+                if (idMatch && idMatch[1]) {
+                    currentSheetId = idMatch[1];
                 }
+
+                const gidMatch = urlInput.match(/gid=([0-9]+)/);
+                if (gidMatch && gidMatch[1]) {
+                    currentGid = gidMatch[1];
+                }
+
                 const displayElem = document.getElementById('sheetUrlDisplay');
                 if (displayElem) {
-                    displayElem.href = `https://docs.google.com/spreadsheets/d/${currentSheetId}/edit?usp=sharing`;
-                    displayElem.innerText = `https://docs.google.com/spreadsheets/d/${currentSheetId}/edit?usp=sharing`;
+                    const fullUrl = `https://docs.google.com/spreadsheets/d/${currentSheetId}/edit?gid=${currentGid}#gid=${currentGid}`;
+                    displayElem.href = fullUrl;
+                    displayElem.innerText = `Spreadsheet #${currentGid}`;
                 }
                 closeSheetModal();
                 fetchSheetData(false);
@@ -781,20 +786,20 @@
             const encodedUri = encodeURI(csvContent);
             const link = document.createElement("a");
             link.setAttribute("href", encodedUri);
-            link.setAttribute("download", "financial_dashboard_data.csv");
+            link.setAttribute("download", "financial_executive_report.csv");
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
         /**
-         * Multi-endpoint Data Synchronizer
+         * Multi-Endpoint Fetcher targeting specific Tab GID
          */
         function fetchSheetData(isSilent = false) {
             const syncIcon = document.getElementById('syncIcon');
             if (syncIcon) syncIcon.classList.add('fa-spin');
 
-            updateBadgeStatus("데이터 동기화 중...", "bg-indigo-50 text-indigo-600 border-indigo-200 dark:bg-indigo-500/10 dark:text-indigo-400 dark:border-indigo-500/20");
+            updateBadgeStatus("동기화 중...", "bg-blue-500/10 text-blue-400 border-blue-500/20");
 
             window.handleGvizResponse = function(response) {
                 if (syncIcon) syncIcon.classList.remove('fa-spin');
@@ -807,10 +812,10 @@
                     const parsed = parseGvizTable(response.table);
                     if (parsed && parsed.length > 0) {
                         activeData = parsed;
-                        updateBadgeStatus("동기화 완료 (3차년도 4분기부터 표시)", "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20");
+                        updateBadgeStatus("동기화 완료 (3차년도 4분기~)", "bg-emerald-500/10 text-emerald-400 border-emerald-500/20");
                         hideDataNotice();
                         renderDashboard();
-                        if (!isSilent) showToast("3차년도 4분기 기준 구글 시트 데이터가 반영되었습니다.");
+                        if (!isSilent) showToast("3차년도 4분기~4차년도 4분기 실적 데이터가 업데이트되었습니다.");
                     } else {
                         tryFetchCsvFallback(0, isSilent);
                     }
@@ -825,7 +830,8 @@
 
             const script = document.createElement('script');
             script.id = 'gvizScript';
-            script.src = `https://docs.google.com/spreadsheets/d/${currentSheetId}/gviz/tq?tqx=responseHandler:handleGvizResponse&t=${Date.now()}`;
+            const gidParam = currentGid ? `&gid=${currentGid}` : '';
+            script.src = `https://docs.google.com/spreadsheets/d/${currentSheetId}/gviz/tq?tqx=responseHandler:handleGvizResponse${gidParam}&t=${Date.now()}`;
             script.onerror = function() {
                 tryFetchCsvFallback(0, isSilent);
             };
@@ -834,15 +840,16 @@
 
         function tryFetchCsvFallback(index, isSilent = false) {
             const syncIcon = document.getElementById('syncIcon');
+            const gidParam = currentGid ? `&gid=${currentGid}` : '';
             const urls = [
-                `https://docs.google.com/spreadsheets/d/${currentSheetId}/gviz/tq?tqx=out:csv`,
-                `https://docs.google.com/spreadsheets/d/${currentSheetId}/export?format=csv`,
-                `https://docs.google.com/spreadsheets/d/${currentSheetId}/pub?output=csv`
+                `https://docs.google.com/spreadsheets/d/${currentSheetId}/gviz/tq?tqx=out:csv${gidParam}`,
+                `https://docs.google.com/spreadsheets/d/${currentSheetId}/export?format=csv${gidParam}`,
+                `https://docs.google.com/spreadsheets/d/${currentSheetId}/pub?output=csv${gidParam}`
             ];
 
             if (index >= urls.length) {
-                updateBadgeStatus("연동 대기 - 수동 CSV 업로드 가능", "bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-500/20");
-                showDataNotice(`구글 시트 수신 응답이 차단되었습니다. [시트 주소/CSV 설정]에서 복사한 CSV를 붙여넣으시면 즉시 반영됩니다.`);
+                updateBadgeStatus("연동 수동 전환 필요", "bg-amber-500/10 text-amber-400 border-amber-500/20");
+                showDataNotice(`구글 시트 수신 응답이 제한되었습니다. [설정] 버튼에서 CSV를 붙여넣으시면 즉시 반영됩니다.`);
                 if (syncIcon) syncIcon.classList.remove('fa-spin');
                 return;
             }
@@ -859,10 +866,10 @@
                     const parsed = parseSheetCSV(csvText);
                     if (parsed && parsed.length > 0) {
                         activeData = parsed;
-                        updateBadgeStatus("동기화 완료 (3차년도 4분기부터 표시)", "bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20");
+                        updateBadgeStatus("동기화 완료 (3차년도 4분기~)", "bg-emerald-500/10 text-emerald-400 border-emerald-500/20");
                         hideDataNotice();
                         renderDashboard();
-                        if (!isSilent) showToast("3차년도 4분기 기준 구글 시트 데이터가 반영되었습니다.");
+                        if (!isSilent) showToast("3차년도 4분기~4차년도 4분기 실적 데이터가 업데이트되었습니다.");
                         if (syncIcon) syncIcon.classList.remove('fa-spin');
                     } else {
                         throw new Error("No parsed rows");
@@ -877,7 +884,7 @@
             const completedItems = activeData.filter(d => d.isCompleted);
             const badgeElem = document.getElementById('dataCountBadge');
             if (badgeElem) {
-                badgeElem.innerText = `${completedItems.length}개 진행 분기 실적 반영 (${activeData.length - completedItems.length}개 미진행 분기 표출)`;
+                badgeElem.innerText = `${completedItems.length}개 실적 집계 분기 반영 (${activeData.length - completedItems.length}개 미진행 분기 제외)`;
             }
 
             if (activeData.length === 0) return;
@@ -907,10 +914,10 @@
 
             renderComboChart(labels, salesData, profitData, salesTrendline, profitTrendline);
 
-            renderSingleChart('salesChart', 'salesChartInstance', labels, salesData, salesTrendline, '매출액', '#3b82f6', 'line');
-            renderSingleChart('profitChart', 'profitChartInstance', labels, profitData, profitTrendline, '영업이익', '#10b981', 'bar');
-            renderSingleChart('incomeChart', 'incomeChartInstance', labels, incomeData, incomeTrendline, '당기순이익', '#8b5cf6', 'bar');
-            renderSingleChart('stockChart', 'stockChartInstance', labels, stockData, stockTrendline, '주가', '#f59e0b', 'line');
+            renderSingleChart('salesChart', 'salesChartInstance', labels, salesData, salesTrendline, '매출액', '#2563eb', 'line');
+            renderSingleChart('profitChart', 'profitChartInstance', labels, profitData, profitTrendline, '영업이익', '#059669', 'bar');
+            renderSingleChart('incomeChart', 'incomeChartInstance', labels, incomeData, incomeTrendline, '당기순이익', '#4f46e5', 'bar');
+            renderSingleChart('stockChart', 'stockChartInstance', labels, stockData, stockTrendline, '주가', '#d97706', 'line');
 
             renderTable(activeData);
         }
@@ -940,23 +947,28 @@
 
         function setSlopeBadge(badgeId, slopeId, slope) {
             const isUp = slope >= 0;
-            const statusText = isUp ? "상승세 ↗️" : "감소세 ↘️";
+            const statusText = isUp ? "상승세 ↗" : "감소세 ↘";
 
             document.getElementById(slopeId).innerText = statusText;
 
             const badge = document.getElementById(badgeId);
             if (isUp) {
-                badge.className = "text-xs px-2.5 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-600 border border-emerald-200 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20 flex items-center gap-1";
-                badge.innerHTML = `<i class="fa-solid fa-arrow-trend-up"></i> 상승`;
+                badge.className = "text-xs font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-arrow-trend-up text-emerald-600"></i> 상승`;
             } else {
-                badge.className = "text-xs px-2.5 py-0.5 rounded-full font-semibold bg-rose-50 text-rose-600 border border-rose-200 dark:bg-rose-500/10 dark:text-rose-400 dark:border-rose-500/20 flex items-center gap-1";
-                badge.innerHTML = `<i class="fa-solid fa-arrow-trend-down"></i> 하강`;
+                badge.className = "text-xs font-bold px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 flex items-center gap-1";
+                badge.innerHTML = `<i class="fa-solid fa-arrow-trend-down text-rose-600"></i> 하강`;
             }
         }
 
         function renderComboChart(labels, salesData, profitData, salesTrend, profitTrend) {
             const ctx = document.getElementById('comboChart').getContext('2d');
             if (comboChartInstance) comboChartInstance.destroy();
+
+            // Gartner/Moody's Style Gradient Area
+            const salesGrad = ctx.createLinearGradient(0, 0, 0, 300);
+            salesGrad.addColorStop(0, 'rgba(37, 99, 235, 0.15)');
+            salesGrad.addColorStop(1, 'rgba(37, 99, 235, 0.0)');
 
             comboChartInstance = new Chart(ctx, {
                 type: 'bar',
@@ -967,19 +979,25 @@
                             type: 'line',
                             label: '매출액',
                             data: salesData,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            borderColor: '#1d4ed8',
+                            backgroundColor: salesGrad,
                             borderWidth: 3,
-                            fill: false,
-                            tension: 0.3,
+                            fill: true,
+                            tension: 0.2,
+                            pointBackgroundColor: '#1d4ed8',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
                             yAxisID: 'y'
                         },
                         {
                             type: 'bar',
                             label: '영업이익',
                             data: profitData,
-                            backgroundColor: '#10b981',
-                            borderRadius: 6,
+                            backgroundColor: 'rgba(5, 150, 105, 0.85)',
+                            borderColor: '#047857',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            barPercentage: 0.5,
                             yAxisID: 'y'
                         },
                         {
@@ -987,8 +1005,8 @@
                             label: ' ',
                             data: salesTrend,
                             borderColor: '#93c5fd',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
                             pointRadius: 0,
                             fill: false,
                             yAxisID: 'y'
@@ -998,8 +1016,8 @@
                             label: '  ',
                             data: profitTrend,
                             borderColor: '#6ee7b7',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
+                            borderWidth: 1.5,
+                            borderDash: [4, 4],
                             pointRadius: 0,
                             fill: false,
                             yAxisID: 'y'
@@ -1014,15 +1032,27 @@
                             labels: {
                                 filter: function(item) {
                                     return item.text.trim().length > 0;
-                                }
+                                },
+                                font: { family: 'Inter', size: 12, weight: '600' }
                             }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            titleFont: { family: 'Noto Sans KR', size: 12, weight: 'bold' },
+                            bodyFont: { family: 'JetBrains Mono', size: 12 },
+                            padding: 10,
+                            cornerRadius: 4
                         }
                     },
                     scales: {
-                        x: { grid: { display: false } },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { font: { family: 'Noto Sans KR', size: 11, weight: '500' }, color: '#475569' }
+                        },
                         y: {
                             beginAtZero: true,
-                            grid: { color: 'rgba(156, 163, 175, 0.1)' }
+                            grid: { color: '#f1f5f9' },
+                            ticks: { font: { family: 'JetBrains Mono', size: 11 }, color: '#64748b' }
                         }
                     }
                 }
@@ -1042,10 +1072,13 @@
                             label: label,
                             data: actualData,
                             borderColor: color,
-                            backgroundColor: type === 'bar' ? color : 'transparent',
-                            borderRadius: type === 'bar' ? 6 : 0,
-                            borderWidth: 2.5,
-                            tension: 0.3
+                            backgroundColor: type === 'bar' ? `${color}D0` : `${color}15`,
+                            borderRadius: type === 'bar' ? 4 : 0,
+                            borderWidth: 2,
+                            fill: type === 'line',
+                            tension: 0.2,
+                            pointBackgroundColor: color,
+                            pointRadius: type === 'line' ? 3 : 0
                         },
                         {
                             type: 'line',
@@ -1053,7 +1086,7 @@
                             data: trendData,
                             borderColor: color,
                             borderWidth: 1.5,
-                            borderDash: [4, 4],
+                            borderDash: [3, 3],
                             pointRadius: 0,
                             fill: false
                         }
@@ -1067,13 +1100,25 @@
                             labels: {
                                 filter: function(item) {
                                     return item.text.trim().length > 0;
-                                }
+                                },
+                                font: { family: 'Inter', size: 11 }
                             }
+                        },
+                        tooltip: {
+                            backgroundColor: '#0f172a',
+                            bodyFont: { family: 'JetBrains Mono', size: 11 }
                         }
                     },
                     scales: {
-                        x: { grid: { display: false } },
-                        y: { beginAtZero: true }
+                        x: { 
+                            grid: { display: false },
+                            ticks: { font: { family: 'Noto Sans KR', size: 10 }, color: '#64748b' }
+                        },
+                        y: { 
+                            beginAtZero: true,
+                            grid: { color: '#f8fafc' },
+                            ticks: { font: { family: 'JetBrains Mono', size: 10 }, color: '#94a3b8' }
+                        }
                     }
                 }
             });
@@ -1084,22 +1129,22 @@
             if (!tbody) return;
 
             if (data.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500">데이터가 없습니다.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">데이터가 없습니다.</td></tr>`;
                 return;
             }
 
             tbody.innerHTML = data.map((d) => {
                 const statusBadge = d.isCompleted 
-                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-300">진행 완료</span>`
-                    : `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400">미진행 분기</span>`;
+                    ? `<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">평가 반영</span>`
+                    : `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500">미진행 (제외)</span>`;
 
                 return `
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
-                        <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-200">${d.period}</td>
-                        <td class="py-3 px-4 text-right ${d.sales === null ? 'text-slate-400' : ''}">${d.sales !== null ? d.sales.toLocaleString() : '-'}</td>
-                        <td class="py-3 px-4 text-right ${d.profit === null ? 'text-slate-400' : ''}">${d.profit !== null ? d.profit.toLocaleString() : '-'}</td>
-                        <td class="py-3 px-4 text-right ${d.income === null ? 'text-slate-400' : ''}">${d.income !== null ? d.income.toLocaleString() : '-'}</td>
-                        <td class="py-3 px-4 text-right ${d.stock === null ? 'text-slate-400' : ''}">${d.stock !== null ? d.stock.toLocaleString() : '-'}</td>
+                    <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+                        <td class="py-3 px-4 font-bold text-slate-800">${d.period}</td>
+                        <td class="py-3 px-4 text-right ${d.sales === null ? 'text-slate-300' : 'text-slate-900'}">${d.sales !== null ? d.sales.toLocaleString() : '-'}</td>
+                        <td class="py-3 px-4 text-right ${d.profit === null ? 'text-slate-300' : 'text-slate-900'}">${d.profit !== null ? d.profit.toLocaleString() : '-'}</td>
+                        <td class="py-3 px-4 text-right ${d.income === null ? 'text-slate-300' : 'text-slate-900'}">${d.income !== null ? d.income.toLocaleString() : '-'}</td>
+                        <td class="py-3 px-4 text-right ${d.stock === null ? 'text-slate-300' : 'text-slate-900'}">${d.stock !== null ? d.stock.toLocaleString() : '-'}</td>
                         <td class="py-3 px-4 text-center">${statusBadge}</td>
                     </tr>
                 `;
